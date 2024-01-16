@@ -1,0 +1,59 @@
+﻿@page "/reservations"
+@inject IReservationService ReservationService
+
+
+<h3>Reservations</h3>
+
+@if (ReservationService.Reservations == null)
+{
+    <span>Loading reservations... </span>
+}
+else if (ReservationService.Reservations.Count == 0)
+{
+    <span>No reservations found.</span>
+} else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Event</th>
+                <th>Title</th>
+                <th>Location</th>
+                <th>Date</th>
+                <th>Reservation Status</th>
+                <th>Payment Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            <Virtualize Items="ReservationService.Reservations" Context="reservation">
+                <tr>
+                    @if (!string.IsNullOrEmpty(reservation.Event.ImageUrl))
+                    {
+                        <img class="image" src="@reservation.Event.ImageUrl" alt="@reservation.Event.Title" />
+                    }
+                    else if (reservation.Event.Images.Count > 0)
+                    {
+
+                        <img class="image" src="@reservation.Event.Images[0].Data" alt="@reservation.Event.Title" />
+                    }
+                    <td>  <a href="/reservation/@reservation.Event.Id">@reservation.Event.Title</a></td>
+                    <td> @reservation.Event.Location.City, @reservation.Event.Location.Country</td>
+                    <td> @reservation.Event.StartDate.ToString("yyyy-MM-dd") </td>
+                    <td> @reservation.ReservationStatus</td>
+                    <td> @reservation.PaymentStatus</td>
+                </tr>
+            </Virtualize>
+
+        </tbody>
+    </table>
+}
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReservationService.GetReservations();
+    }
+
+       
+}

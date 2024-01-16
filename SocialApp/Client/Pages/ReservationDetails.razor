@@ -1,0 +1,74 @@
+﻿@page "/reservation/{EventId:int}"
+@inject IReservationService ReservationService
+@inject IEventService EventService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Reservation</PageTitle>
+
+@if (reservation == null)
+{
+    <span>@message</span>
+}
+else
+{
+    <div class="media-body">
+        <h2 class="mb-0">Reservation for @reservation.Event.Title </h2>
+        <p>Event date: @reservation.Event.StartDate</p>
+        <p>Event location: @reservation.Event.Location.City, @reservation.Event.Location.Country</p>
+
+    @if (reservation.ReservationStatus == ReservationStatus.Confirmed)
+    {
+        <h3>Your reservation is confirmed. Find your active reservations <a href="/reservations">here</a>.</h3>
+    }
+    else if (reservation.ReservationStatus == ReservationStatus.Pending 
+            && reservation.PaymentStatus == PaymentStatus.Unpaid)
+    {
+        <h3>Your reservation is pending. Please make a payment to confirm your reservation.</h3>
+
+        <button class="btn btn-primary" @onclick="MakePayment">
+            <i class="oi oi-dollar"></i>&nbsp;&nbsp;&nbsp;Make Payment
+        </button>
+    }
+
+    <hr />
+     <h6 class="price">Event price: @reservation.Event.Price</h6>
+    <hr />
+    <h6>Event max attendees: @reservation.Event.MaxAttendees</h6>
+
+    </div>
+}
+
+
+@code {
+           
+    private SocialApp.Shared.Models.Reservation? reservation = null;
+    private string message = string.Empty;
+    
+        bool isAuthenticated = false;
+
+    [Parameter]
+    public int EventId { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        message = "Loading reservation...";
+
+        var result = await ReservationService.GetReservation(EventId);
+        if (!result.Success)
+        {
+            message = result.Message;
+        }
+        else
+        {
+            reservation = result.Data;
+        }
+    }
+
+    private async Task MakePayment()
+    {
+        string url = await ReservationService.MakePayment();
+        NavigationManager.NavigateTo(url);
+    }
+
+}

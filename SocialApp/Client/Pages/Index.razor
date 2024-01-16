@@ -1,0 +1,38 @@
+﻿@page "/"
+@page "/search/{searchText}/{page:int}"
+@page "/{categoryUrl}"
+@inject IEventService EventService
+
+<PageTitle>Club Social</PageTitle>
+
+@if (SearchText == null && CategoryUrl == null)
+{
+    <FeaturedEvents />
+}
+else
+{
+    <EventList />
+}
+
+@code {
+    [Parameter]
+    public string? CategoryUrl { get; set; } = null;
+
+    [Parameter]
+    public string? SearchText { get; set; } = null;
+
+    [Parameter]
+    public int Page { get; set; } = 1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (SearchText != null)
+        {
+            await EventService.SearchEvents(SearchText, Page);
+        }
+        else
+        {
+            await EventService.GetEvents(CategoryUrl);
+        }
+    }
+}

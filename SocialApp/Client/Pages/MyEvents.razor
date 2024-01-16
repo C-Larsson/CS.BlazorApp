@@ -1,0 +1,63 @@
+﻿@page "/events"
+@inject IEventService EventService
+@inject NavigationManager NavigationManager
+
+<h3>Events</h3>
+
+@if (EventService.MyEvents == null)
+{
+    <span>Loading events... </span>
+}
+else if (EventService.MyEvents.Count == 0)
+{
+    <span>No events found.</span>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Event</th>
+                <th>Title</th>
+                <th>Location</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            <Virtualize Items="EventService.MyEvents" Context="event1">
+                <tr>
+                    @if (!string.IsNullOrEmpty(event1.ImageUrl))
+                    {
+                        <img class="image" src="@event1.ImageUrl" alt="@event1.Title" />
+                    }
+                    else if (event1.Images.Count > 0)
+                    {
+
+                        <img class="image" src="@event1.Images[0].Data" alt="@event1.Title" />
+                    }
+                    <td>  <a href="/event/@event1.Id">@event1.Title</a></td>
+                    <td> @event1.Location.City, @event1.Location.Country</td>
+                    <td> @event1.StartDate.ToString("yyyy-MM-dd") </td>
+                </tr>
+            </Virtualize>
+
+        </tbody>
+    </table>
+}
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        var success = await EventService.GetMyEvents();
+        if (!success)
+        {
+            NavigationManager.NavigateTo("/login");
+        }
+    }
+
+
+}
+
+
+

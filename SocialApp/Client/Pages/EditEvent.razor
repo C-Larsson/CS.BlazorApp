@@ -1,0 +1,264 @@
+﻿@page "/event/add"
+@page "/event/edit/{id:int}"
+@inject IEventService EventService
+@inject ICategoryService CategoryService
+@inject ILocationService LocationService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+@if (loading)
+{
+    <span>@message</span>
+} else
+{
+    @if (event1.Editing)
+    {
+        <h3>Edit @event1.Title</h3>
+    }
+    else if (event1.IsNew)
+    {
+        <h3>Create a new Event</h3>
+    }
+
+    <EditForm Model="event1" OnValidSubmit="AddOrUpdateEvent">
+        <DataAnnotationsValidator />
+        <div class="mb-0">
+            <label for="title">Title</label>
+            <InputText id="title" @bind-Value="event1.Title" class="form-control"></InputText>
+        </div>
+        <div class="mb-0">
+            <label for="imageUrl">Image Url</label>
+            <InputText id="imageUrl" @bind-Value="event1.ImageUrl" class="form-control"></InputText>
+        </div>
+        <div class="mb-0" style="display: flex; flex-wrap: wrap; flex-direction: row; justify-content: center;">
+            @if (!string.IsNullOrEmpty(event1.ImageUrl))
+            {
+                <img src="@event1.ImageUrl" />
+            }
+            else
+            {
+                foreach (var image in event1.Images)
+                {
+                    <MudCard Class="ma-2">
+                        <MudCardContent>
+                            <MudImage Src="@image.Data" />
+                        </MudCardContent>
+                        <MudCardActions Style="justify-content: center;">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Error"
+                                       OnClick="@(() => RemoveImage(image.Id))">
+                                Remove
+                            </MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                }
+            }
+        </div>
+        <div class="mb-0">
+            <label for="images">Image(s)</label>
+            <InputFile id="images" OnChange="OnFileChange" multiple class="form-control"></InputFile>
+        </div>
+        <div class="mb-0">
+            <label for="description">Description</label>
+            <InputTextArea id="description" @bind-Value="event1.Description" class="form-control"></InputTextArea>
+        </div>
+        <div class="mb-0">
+            <label for="startdate">Start Date</label>
+            <InputDate id="startdate" Type="InputDateType.DateTimeLocal" @bind-Value="event1.StartDate" class="form-control"></InputDate>
+
+        </div>
+        <div class="mb-0">
+            <label for="enddate">End Date</label>
+            <InputDate id="enddate" Type="InputDateType.DateTimeLocal" @bind-Value="event1.EndDate" class="form-control"></InputDate>
+        </div>
+        <hr />
+        <div class="mb-0">
+            <label for="currency">Currency: </label>
+            <InputSelect id="currency" @bind-Value="event1.CurrencyCode" class="form-control">
+                @foreach (var currency in Currencies)
+                {
+                    <option value="@currency">@currency</option>
+                }
+            </InputSelect>
+            <label for="price">Price: </label>
+            <InputNumber id="price" @bind-Value="event1.Price" class="form-control"></InputNumber>
+        </div>
+        <div class="mb-0">
+            <label for="location">Location</label>
+            <input @bind-value="locationSearchText"
+            @bind-value:event="oninput"
+                   type="search"
+                   list="locations"
+            @onkeyup="HandleLocationSearch"
+                   class="form-control"
+                   placeholder="@locationPlaceHolder"
+            @onchange="HandleLocationSelection"
+            @ref="searchInput" />
+            <datalist id="locations">
+                @foreach (var location in LocationService.Locations)
+                {
+                    <option>@location.City, @location.Country</option>
+                }
+            </datalist>
+            <input type="hidden" @bind="selectedLocationId" />
+        </div>
+        <div class="mb-0">
+            <label for="category">Category</label>
+            <InputSelect id="category" @bind-Value="event1.CategoryId" class="form-control">
+                @foreach (var category in CategoryService.Categories)
+                {
+                    <option value="@category.Id">@category.Name</option>
+                }
+            </InputSelect>
+        </div>
+        <hr />
+        <div class="form-check">
+            <InputCheckbox id="visible" @bind-Value="event1.Visible" class="form-check-input"></InputCheckbox>
+            <label for="visible" class="form-check-label">Visible</label>
+        </div>
+        <hr />
+        <button type="submit" class="btn btn-primary float-end">@btnText</button>
+         <ValidationSummary />
+    </EditForm>
+    @if (!event1.IsNew)
+    {
+        <button type="button" class="btn btn-danger float-start" @onclick="DeleteEvent">
+            Delete Event
+        </button>
+    }
+}
+
+@code {
+
+    [Parameter]
+    public int Id { get; set; }
+
+    Event event1 = new Event();
+    string locationPlaceHolder = "Search for a location";
+    bool loading = true;
+    string btnText = "";
+    string message = "Loading...";
+
+    private string locationSearchText = string.Empty;
+    private int selectedLocationId = 0;
+    private List<Location> locationSuggestions = new List<Location>();
+    protected ElementReference searchInput;
+
+    private List<string> Currencies = new List<string> { "USD", "EUR", "SEK", "THB" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CategoryService.GetCategories();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id == 0)
+        {
+            event1 = new Event { IsNew = true };
+            event1.StartDate = DateTime.Now.AddDays(2);
+            event1.EndDate = event1.StartDate.AddHours(2);
+            btnText = "Create event";
+        } else {
+            Event dbEvent = (await EventService.GetEvent(Id)).Data;
+            if (dbEvent == null)
+            {
+                message = $"Event with id {Id} not found";
+                return;
+            }
+            else
+            {
+                event1 = dbEvent;
+                event1.Editing = true;
+                locationPlaceHolder = $"{event1.Location?.City}, {event1.Location?.Country}";
+            btnText = "Update event";
+            }
+        }
+        loading = false;
+    }
+
+    /* TODO: Remove if not needed
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await searchInput.FocusAsync();
+        }
+    }
+    */
+
+    public async Task HandleLocationSearch(KeyboardEventArgs args)
+    {
+        // Starting search at this length.
+        var searchStringLength = 1;
+        if (locationSearchText.Length >= searchStringLength)
+        {
+            await LocationService.GetSearchSuggestions(locationSearchText);
+        }
+    }
+
+    private void HandleLocationSelection()
+    {
+        var selectedLocation = LocationService.Locations.FirstOrDefault(l => $"{l.City}, {l.Country}" == locationSearchText);
+        if (selectedLocation != null)
+        {
+            selectedLocationId = selectedLocation.Id; 
+        }
+    }
+
+    private async void AddOrUpdateEvent()
+    { 
+        if (selectedLocationId != 0)
+        {
+            event1.LocationId = selectedLocationId;
+        }
+
+        if (event1.IsNew)
+        {
+            var result =await EventService.CreateEvent(event1);
+            NavigationManager.NavigateTo($"event/edit/{result.Id}");
+        } 
+        else
+        {
+            event1.IsNew = false;
+            event1 = await EventService.UpdateEvent(event1);
+            NavigationManager.NavigateTo($"event/edit/{event1.Id}", true);
+        }
+        //NavigationManager.NavigateTo("/events");
+    }
+
+
+    private async void DeleteEvent()
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
+            $"Do you really want to delete '{event1.Title}'?");
+        if (confirmed)
+        {
+            await EventService.DeleteEvent(event1.Id);
+            NavigationManager.NavigateTo("/events");
+        }
+    }
+
+    private async Task OnFileChange(InputFileChangeEventArgs e)
+    {
+        var format = "image/png";
+        foreach (var image in e.GetMultipleFiles(int.MaxValue))
+        {
+            var resizedImage = await image.RequestImageFileAsync(format, 300, 300);
+            var buffer = new byte[resizedImage.Size];
+            await resizedImage.OpenReadStream().ReadAsync(buffer);
+            var imageData = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
+            event1.Images.Add(new Image { Data = imageData });
+        }
+    }
+
+    private void RemoveImage(int id)
+    {
+        var image = event1.Images.FirstOrDefault(i => i.Id == id);
+        if (image != null)
+        {
+            event1.Images.Remove(image);
+        }
+    }
+
+}

@@ -1,0 +1,81 @@
+﻿@inject ICategoryService CategoryService
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<div class="top-row ps-3 navbar navbar-dark navbar-toggler-wrapper">
+    <div class="container-fluid">
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-nav">
+        <div class="nav-item px-2">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <i class="oi oi-home"></i>Home
+            </NavLink>
+        </div>
+        <div class="dropdown">
+             <div class="nav-item px-2">
+                <NavLink class="nav-link" role="button">
+                    <i class="oi oi-menu"></i>Categories
+                </NavLink>
+            </div>
+            <!-- TODO: Fix styling for dropdown menu -->
+            <div class="dropdown-content">
+                @foreach (var category in CategoryService.Categories)
+                {
+                        <a  href="@category.Url">@category.Name</a>
+                }
+            </div>
+        </div>
+         <AuthorizeView>
+            <Authorized>
+                 <div class="nav-item px-2">
+                    <NavLink  href="event/add" Match="NavLinkMatch.All">
+                        Create Event
+                    </NavLink>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-2">
+                    <a class="nav-link" href="login?returnUrl=@NavigationManager.ToBaseRelativePath(NavigationManager.Uri)">Login</a>
+                </div>
+                <div class="nav-item px-2">
+                    <NavLink class="nav-link" href="register">Sign Up</NavLink>
+                </div>  
+            </NotAuthorized>
+         </AuthorizeView>
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+
+
+    private void ToggleNavMenu()
+    {
+ //       collapseNavMenu = !collapseNavMenu;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CategoryService.GetCategories();
+        CategoryService.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        CategoryService.OnChange -= StateHasChanged;
+    }
+
+
+
+
+
+}

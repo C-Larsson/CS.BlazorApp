@@ -1,0 +1,37 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace SocialApp.Shared.Models.Tables
+{
+    public class Category
+    {
+
+        public int Id { get; set; }
+
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        public string? Description { get; set; } = string.Empty;
+
+        [Required]
+        public string Url { get; set; } = string.Empty;
+
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+
+        public bool Visible { get; set; } = true;
+
+        public bool Deleted { get; set; } = false;
+
+        [NotMapped]
+        public bool Editing { get; set; } = false;
+
+        [NotMapped]
+        public bool IsNew { get; set; } = false;
+
+    }
+}

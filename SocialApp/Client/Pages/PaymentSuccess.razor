@@ -1,0 +1,33 @@
+﻿@page "/payment-success"
+@inject IReservationService ReservationService
+
+<PageTitle>Thank you!</PageTitle>
+
+<h3>Thank you!</h3>
+
+<span>You payment was successful</span>
+
+<p> You have paid for the following events today: </p>
+
+@foreach (var reservation in paidReservations)
+{
+    <p>@reservation.Event.Title</p>
+}
+
+<p> You can check your reservations <a href="reservations">here</a>.</p>
+
+@code {
+
+    List<Reservation> paidReservations = new List<Reservation>();
+
+    protected override async void OnInitialized()
+    {
+       await ReservationService.GetReservations();
+
+        paidReservations = ReservationService.Reservations
+            .Where(r => r.PaymentStatus == PaymentStatus.Paid && r.PaymentDate > DateTime.Today)
+            .ToList();
+
+    }
+
+}

@@ -1,0 +1,47 @@
+﻿@inject IEventService EventService
+@implements IDisposable
+
+<center><h2>Top Events of Today</h2></center>
+@if (EventService.Events == null || EventService.Events.Count == 0)
+{
+    <span>@EventService.Message</span>
+}
+else
+{
+    <div class="container">
+        @foreach (var e in EventService.Events)
+        {
+            @if (e.Featured)
+            {
+                <div class="featured-event">
+                    <div>
+                        <a href="event/@e.Id">
+                            @if (!string.IsNullOrEmpty(e.ImageUrl))
+                            {
+                                <img src="@e.ImageUrl">
+                            }
+                            else if (e.Images.Count > 0)
+                            {
+                                <img src="@e.Images[0].Data" />
+                            }
+                        </a>
+                    </div>
+                    <h4><a href="event/@e.Id">@e.Title</a></h4>
+                 
+                </div>
+            }
+        }
+    </div>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        EventService.EventsChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        EventService.EventsChanged -= StateHasChanged;
+    }
+}

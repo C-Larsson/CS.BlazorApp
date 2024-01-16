@@ -1,0 +1,141 @@
+﻿@page "/event/{id:int}"
+@using SocialApp.Client.Shared
+@inject IEventService EventService
+@inject IReservationService ReservationService
+@inject NavigationManager NavigationManager
+
+
+@if (event1 == null)
+{
+    <span>@message</span>
+}
+else
+{
+    <div class="media">
+        <div class="media-img-wrapper mr-2">
+            @if (!string.IsNullOrEmpty(event1.ImageUrl))
+            {
+                <img class="media-img" src="@event1.ImageUrl" alt="@event1.Title" />
+            }
+            else
+            {
+                <MudCarousel class="mud-width-full" ItemsSource="@event1.Images" Style="height: 300px;">
+                    <ItemTemplate>
+                        <MudImage src="@context.Data"></MudImage>
+                    </ItemTemplate>
+                </MudCarousel>
+            }
+        </div>
+        <div class="media-body">
+            <h2 class="mb-0">@event1.Title</h2>
+            <p>@event1.Description</p>
+         
+            <h6 class="price">
+                @GetPriceText(event1)
+            </h6>
+
+            @if (event1.MaxAttendees == int.MaxValue)
+            {
+                <h6>There is no limit on the number of attendees.</h6>
+            }
+            else
+            {
+                <h6>Max Attendees: @event1.MaxAttendees </h6>
+                <h6>There are <span style="color: #008000; font-weight:bold">@GetSpotsLeft(event1)</span> spots left for this event.</h6>
+            }
+            <hr />
+            <AuthorizeView>
+                <Authorized>
+                    <button class="btn btn-primary" @onclick="Reserve">
+                        <i class="oi oi-star"></i>&nbsp;&nbsp;&nbsp;Place reservation
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+        @if (isUserAttending)
+        {
+            <ChatRoom EventId="@event1.Id.ToString()" />
+        }
+
+    </div>
+}
+
+@code {
+    private Event? event1 = null;
+    private string message = string.Empty;
+    private bool isUserAttending = false;
+
+
+    [Parameter]
+    public int Id { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        message = "Loading event...";
+
+        var result = await EventService.GetEvent(Id);
+        if (!result.Success)
+        {
+            message = result.Message;
+        }
+        else
+        {
+            event1 = result.Data;
+            isUserAttending = await IsUserAttending();
+        }
+    }
+
+
+    private async Task Reserve()
+    {
+        var reservation = new SocialApp.Shared.Models.Reservation()
+            {
+                EventId = event1.Id,
+            };
+
+        var result = await ReservationService.PlaceReservation(event1.Id, 1);
+
+        if (result.Success)
+        {
+            message = result.Message;
+            NavigationManager.NavigateTo($"/reservation/{event1.Id}");
+        }
+        else
+        {
+            message = result.Message;
+            NavigationManager.NavigateTo("/login");
+        }
+    }
+
+    private string GetPriceText(Event e)
+    {
+        if (e.Price == 0)
+        {
+            return "This is a free event.";
+        }
+        else
+        {
+            return $"{e.CurrencyCode} {e.Price}";
+        }
+    }
+
+    private int GetSpotsLeft(Event e)
+    {
+        return e.MaxAttendees - e.AttendeeCount;
+    }
+
+    private async Task<bool> IsUserAttending() 
+    {
+        var reservation = await ReservationService.GetReservation(event1.Id);
+        if (!reservation.Success)
+        {
+            return false;
+        } else {
+            return reservation.Data.ReservationStatus == ReservationStatus.Confirmed;
+        }
+    }
+
+
+}
+
+

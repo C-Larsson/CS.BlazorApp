@@ -1,0 +1,71 @@
+﻿@inject IEventService EventService
+@implements IDisposable
+
+@if (EventService.Events == null || EventService.Events.Count == 0)
+{
+    <span>@EventService.Message</span>
+}
+else
+{
+    <ul class="list-unstyled">
+        @foreach (var e in EventService.Events)
+        {
+            <li class="media my-3">
+                <div class="media-img-wrapper mr-2">
+                    <a href="/event/@e.Id">
+                        @if (!string.IsNullOrEmpty(e.ImageUrl))
+                        {
+                            <img class="media-img" src="@e.ImageUrl" alt="@e.Title" />
+                        }
+                        else if (e.Images.Count > 0)
+                        {
+                            <img class="media-img" src="@e.Images[0].Data" alt="@e.Title" />
+                        }
+                    </a>
+                </div>
+                <div class="media-body">
+                    <a href="/event/@e.Id">
+                        <h4 class="mb-0">@e.Title</h4>
+                    </a>
+                    <p>@e.Description</p>
+                    <h5 class="price">
+                        @GetPriceText(e)
+                    </h5>
+                </div>
+            </li>
+        }
+    </ul>
+    for (var i = 1; i <= EventService.PageCount; i++)
+    {
+        <a class="btn
+                 @(i == EventService.CurrentPage ? "btn-info" : "btn-outline-info")
+                 page-selection"
+           href="/search/@EventService.LastSearchText/@i">@i</a>
+    }
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        EventService.EventsChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        EventService.EventsChanged -= StateHasChanged;
+    }
+
+    private string GetPriceText(Event e)
+    {
+        if (e.Price == 0)
+        {
+            return "Free";
+        }
+        else
+        {
+            return $"{e.CurrencyCode} {e.Price}";
+        }
+    }
+
+  
+}

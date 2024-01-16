@@ -1,0 +1,78 @@
+﻿@page "/admin/events"
+@inject IEventService EventService
+@inject NavigationManager NavigationManager
+@attribute [Authorize(Roles = "Admin")]
+
+<h3>Events</h3>
+
+@if (EventService.AdminEvents == null)
+{
+    <span>Loading events... </span>
+}
+else if (EventService.AdminEvents.Count == 0)
+{
+    <span>No events found.</span>
+}
+else
+{
+    <button class="btn btn-primary float-end" @onclick="CreateEvent">
+        <i class="oi oi-plus"></i> Add new event
+    </button>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Event</th>
+                <th>Title</th>
+                <th>Location</th>
+                <th>Date</th>
+                <th>Price</th>
+                <th>Visible</th>
+            </tr>
+        </thead>
+        <tbody>
+            <Virtualize Items="EventService.AdminEvents" Context="event1">
+                <tr>
+                    @if (event1.Images.Count > 0)
+                    {
+                        <MudImage Height="100" Src="@event1.Images[0].Data" Class="rounded-lg" />
+                    }
+                    else
+                    {
+                        <img src="@event1.ImageUrl" alt="@event1.Title"/>
+                    }
+                    <td> @event1.Title</td>
+                    <td> @event1.Location.City, @event1.Location.Country</td>
+                    <td> @event1.StartDate.ToString("yyyy-MM-dd") </td>
+                    <td> @event1.CurrencyCode @event1.Price</td>
+                    <td> @(event1.Visible ? "✔️" : "")</td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="(() => EditEvent(event1.Id))">
+                            <i class="oi oi-pencil"></i>
+                        </button>
+                    </td>
+                </tr>
+            </Virtualize>
+        </tbody>
+    </table>
+}
+
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        await EventService.GetAdminEvents();
+    }
+
+    void EditEvent(int eventId)
+    {
+        NavigationManager.NavigateTo($"event/edit/{eventId}");
+    }
+
+    void CreateEvent()
+    {
+        NavigationManager.NavigateTo("event/add");
+    }
+
+
+}

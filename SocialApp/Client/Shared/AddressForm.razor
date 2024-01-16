@@ -1,0 +1,103 @@
+﻿@inject IAddressService AddressService
+@using SocialApp.Shared.Models
+@using Microsoft.AspNetCore.Components.Forms
+
+@if (AddressService.Address == null)
+{
+    <span>
+        You haven't specified a delivery address, yet.
+        <button class="btn btn-primary" @onclick="CreateNewAddress">
+            <iconify-icon icon="la:address-card"></iconify-icon>Add an address?
+        </button>
+    </span>
+    <hr />
+}
+else if (!editAddress)
+{
+    <p>
+        <span>@AddressService.Address.Name</span><br />
+        <span>@AddressService.Address.Street</span><br />
+        <span>@AddressService.Address.City, @AddressService.Address.State, @AddressService.Address.PostalCode</span><br />
+        <span>@AddressService.Address.Country</span><br />
+    </p>
+    <button class="btn btn-primary" @onclick="EditAddress">Edit address</button>
+    <hr />
+}
+else
+{
+    <EditForm Model="AddressService.Address" OnSubmit="UpdateAddress">
+        <div class="mb-3">
+            <label for="firstname">Name</label>
+            <InputText id="name" @bind-Value="AddressService.Address.Name" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="street">Street</label>
+            <InputText id="street" @bind-Value="AddressService.Address.Street" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="city">City</label>
+            <InputText id="city" @bind-Value="AddressService.Address.City" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="state">State</label>
+            <InputText id="state" @bind-Value="AddressService.Address.State" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="zip">ZIP/Postal Code</label>
+            <InputText id="zip" @bind-Value="AddressService.Address.PostalCode" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="country">Country</label>
+            <InputText id="country" @bind-Value="AddressService.Address.Country" class="form-control" />
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </EditForm>
+}
+
+
+
+@code {
+
+    bool editAddress = false;
+    Address editingAddress = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AddressService.GetUserAddress();
+        AddressService.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        AddressService.OnChange -= StateHasChanged;
+    }
+
+    private void CreateNewAddress()
+    {
+        editAddress = true;
+        editingAddress = AddressService.CreateNewAddress();
+    }
+
+    private void EditAddress()
+    {
+        editAddress = true;
+        editingAddress = AddressService.Address;
+    }
+
+    private async Task UpdateAddress()
+    {
+        if (editingAddress.IsNew)
+            await AddressService.AddUserAddress(editingAddress);
+        else
+            await AddressService.UpdateUserAddress(editingAddress);
+        editingAddress = new Address();
+        editAddress = false;
+    }
+
+    private async  void CancelEdit()
+    {
+        editingAddress = new Address();
+        await AddressService.GetUserAddress();
+    }
+
+}

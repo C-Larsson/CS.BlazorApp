@@ -1,0 +1,129 @@
+﻿@page "/admin/users"
+@inject IUserService UserService
+@attribute [Authorize(Roles = "Admin")]
+@implements IDisposable
+
+<h3>Users</h3>
+
+@if (UserService.Users == null)
+{
+    <span>Loading users... </span>
+}
+else
+{
+    <div class="header">
+        <div class="col">Profile</div>
+        <div class="col">Email</div>
+        <div class="col">Role</div>
+        <div class="col">Blocked</div>
+        <div class="col"></div>
+    </div>
+
+    @foreach (var user in UserService.Users)
+        {
+        @if (user.Editing)
+        {
+            <EditForm Model="editingUser" OnSubmit="UpdateUser">
+                <div class="row">
+                    <div class="col justify-center">
+                        @if (user.Profile?.Image == null)
+                        {
+                            <i class="oi oi-person"></i>
+                        }
+                        else
+                        {
+                            <MudImage Height="50" Width="50" Src="@user.Profile.Image.Data" Class="rounded-lg"/>
+                        }
+                    </div>
+                        <div class="col">
+                            @editingUser.Email
+                        </div>
+                        <div class="col">
+                            <InputSelect @bind-Value="editingUser.Role" class="form-control">
+                                <option value="@Role.Member">Member</option>  
+                                <option value="@Role.Admin">Admin</option>
+                            </InputSelect>
+                        </div>
+                        <div class="col">
+                            <InputCheckbox @bind-Value="editingUser.Blocked" style="transform: scale(1.5,1.5);"></InputCheckbox>
+                        </div>
+                        <div class="col">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="oi oi-cloud-upload"></i>
+                            </button>
+                            <button class="btn btn-primary" @onclick="CancelEditing">
+                                <i class="oi oi-circle-x"></i>
+                            </button>
+                        </div>
+                    </div>
+            </EditForm>
+        }
+        else
+        {
+            <div class="row">
+                <div class="col justify-center">
+                    @if (user.Profile?.Image == null)
+                    {
+                        <i class="oi oi-person"></i>
+                    }
+                    else
+                    {
+                        <MudImage Height="50" Width="50" Src="@user.Profile.Image.Data" Class="rounded-lg" />
+                    }
+                </div>
+                <div class="col">
+                    @user.Email
+                </div>
+                <div class="col">
+                    @user.Role
+                </div>
+                <div class="col">
+                    @user.Blocked
+                </div>
+                <div class="col">
+                    <button class="btn btn-primary" @onclick="(() => EditUser(user))">
+                        <i class="oi oi-pencil"></i>
+                    </button>
+                </div>
+            </div>
+        }
+
+    }
+}
+
+
+
+@code {
+    User editingUser = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UserService.GetUsers();
+        UserService.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        UserService.OnChange -= StateHasChanged;
+    }
+
+
+    private void EditUser(User user)
+    {
+        user.Editing = true;
+        editingUser = user;
+    }
+
+    private async Task UpdateUser()
+    {
+        await UserService.UpdateUser(editingUser);
+        editingUser = new User();
+    }
+
+    private async Task CancelEditing()
+    {
+        editingUser = new User();
+        await UserService.GetUsers();
+    }
+
+}

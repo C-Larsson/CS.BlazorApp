@@ -1,0 +1,21 @@
+﻿
+.profile-container {
+    display: flex;
+    align-items: start; /* To align items to the top */
+}
+
+.profile-image {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%; /* Makes the image circular */
+    margin-right: 20px; /* Adds some space between the image and the name & bio */
+}
+
+.profile-info h2 {
+    margin: 0;
+    margin-bottom: 10px; /* Adds some space between the name and the bio */
+}
+
+.profile-info p {
+    margin: 0;
+}

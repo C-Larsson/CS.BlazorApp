@@ -1,0 +1,104 @@
+﻿@inject IChatRoomService ChatRoomService
+@inject NavigationManager NavigationManager
+@inject IAuthService AuthService
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+<div class="chatroom">
+    <h3>ChatRoom</h3>
+    <textarea readonly class="chatroom-messages" @bind="messages"></textarea>
+
+    <div class="chatroom-input">
+        <input type="text" @bind="message" placeholder="Type your message..." />
+        <button @onclick="Send">Send</button>
+    </div>
+</div>
+
+
+@code {
+
+    [Parameter] 
+    public string EventId { get; set; }
+
+    private HubConnection? hubConnection;
+    private string messages = "Messages Loading...";
+    private string message = string.Empty;
+    private string username = string.Empty;
+    ElementReference TextAreaRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ChatRoomService.GetMessages(int.Parse(EventId));
+        messages = string.Empty;
+        foreach (var message in ChatRoomService.ChatMessages)
+        {
+            messages = $"{messages}{message.SentAt.ToString("yyyy-MM-dd HH:mm")} {message.Sender.Email} : {message.Content}\n";
+        }
+        
+        username = await AuthService.GetUserName();
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri($"/chatHub/?username={username}&event={EventId}"))
+            .Build();
+
+        hubConnection.On<string, string>("ReceiveMessage", (user, message) =>
+        {
+            var encodedMsg = $"{user}: {message}";
+            messages += encodedMsg + "\n";
+            JSRuntime.InvokeVoidAsync("scrollToBottom", TextAreaRef);
+            StateHasChanged();  // Request the component to re-render itself
+        });
+        await hubConnection.StartAsync();
+ 
+        if (!string.IsNullOrEmpty(EventId))
+        {
+            await hubConnection.SendAsync("JoinRoom", EventId);
+        }
+        StateHasChanged();  // Request the component to re-render itself
+    }
+
+    private async Task Send()
+    {
+        if (hubConnection != null)
+        {
+            // SendMessage is the name of method in ChatHub.cs
+            await hubConnection.SendAsync("SendMessageToRoom", EventId, username, message);
+            var result = await ChatRoomService.SaveMessage(EventId, message);
+            messages = $"{messages}{result.SentAt.ToString("yyyy-MM-dd HH:mm")} {username} : {message}\n";
+            message = string.Empty;
+            StateHasChanged();  // Request the component to re-render itself
+        }
+    }
+
+    private async Task HandleInput(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await Send();
+        }
+    }
+
+    public bool IsConnected =>
+        hubConnection?.State == HubConnectionState.Connected;
+
+
+    public async ValueTask DisposeAsync()
+    {
+
+        if (!string.IsNullOrEmpty(EventId))
+        {
+            await hubConnection.SendAsync("LeaveRoom", EventId);
+        }
+
+        if (hubConnection != null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+
+    private void ReceiveMessage(string user, string content)
+    {
+        messages += $"{DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm")} {user}: {content}\n";
+        StateHasChanged(); // Refresh the component to reflect the changes
+    }
+
+}
